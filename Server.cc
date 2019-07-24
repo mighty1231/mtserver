@@ -8,9 +8,9 @@
 const char *Server::SOCKET_NAME = "/dev/mt/server";
 
 
-Connection::Connection(int socket_fd_, sockaddr_un client_addr_)
-    :socket_fd(socket_fd_), addr(client_addr_),
-    shm_fd(-1), status(sStart) {
+Connection::Connection(int socket_fd_, int16_t uid_, char *package_name_)
+    :socket_fd(socket_fd_), uid(uid_), package_name(package_name_),
+    status(sStart) {
 }
 
 Connection::~Connection() {
@@ -20,17 +20,7 @@ Connection::~Connection() {
 
 int Connection::handle() {
     // several phases
-    // send uid
-    // get package name, shm size
-    // 
-    // several callbacks
-    //  - DexPcMoved
-    //  - FieldRead
-    //  - FieldWritten
-    //  - MethodEntered
-    //  - MethodExited
-    //  - MethodUnwind
-    //  - ExceptionCaught
+    // send uid, send package name
 
     switch (status) {
         case sStart:
@@ -41,6 +31,8 @@ int Connection::handle() {
             if (shakeval == SPECIAL_VALUE){
                 status = sRunning;
                 printf("connection success!\n");
+                write(socket_fd, &uid, 2);
+                write(socket_fd, package_name, strlen(package_name) + 1);
                 return 1;
             }
             fprintf(stderr, "special value %X\n", shakeval);
@@ -66,7 +58,7 @@ int Connection::handle() {
 //     // FD_SET(socket_fd, )
 // }
 
-Server::Server(int16_t uid): uid_(uid) {
+Server::Server(int16_t uid_, char *package_name): uid(uid_) {
     int yes;
     printf("Creating Socket...\n");
     if ((socket_fd = socket(AF_UNIX, SOCK_STREAM, 0)) == -1)  {
@@ -79,6 +71,8 @@ Server::Server(int16_t uid): uid_(uid) {
         fprintf(stderr, "setsockopt\n");
         socket_fd = -1;
     }
+
+    strcpy(this->package_name, package_name);
 }
 
 Server::~Server() {
@@ -158,13 +152,13 @@ int Server::run() {
             }
 
             // send uid
-            size_t ret = write(client_sock, &uid_, 2);
+            size_t ret = write(client_sock, &uid, 2);
             if (ret != 2) {
                 fprintf(stderr, "write uid");
                 goto handle_traffic;
             }
 
-            Connection *connection = new Connection(client_sock, client_addr);
+            Connection *connection = new Connection(client_sock, uid, package_name);
             connections.push_back(connection);
         }
 

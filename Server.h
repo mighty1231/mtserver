@@ -2,11 +2,10 @@
 #ifndef SERVER_H_
 #define SERVER_H_
 
-#include <list>
-
-#include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+
+#include <list>
 
 enum connectionStatus {
     sStart, // wait for first response (matching uid)
@@ -15,7 +14,7 @@ enum connectionStatus {
 
 class Connection {
 public:
-    Connection(int socket, sockaddr_un client_addr);
+    Connection(int socket, int16_t uid, char *package_name);
     virtual ~Connection();
 
     int handle();
@@ -24,11 +23,9 @@ public:
 
 private:
     // size_t read(void *buffer, int len);
-
     int socket_fd;
-    sockaddr_un addr;
-
-    int shm_fd;
+    int16_t uid;
+    char *package_name;
 
     connectionStatus status;
     static const int SPECIAL_VALUE = 0x7415963; // handshake value
@@ -38,7 +35,7 @@ private:
 class Server {
 
 public:
-    Server (int16_t uid);
+    Server (int16_t uid, char *package_name);
     virtual ~Server();
 
     int run();
@@ -46,7 +43,8 @@ public:
     static const char *SOCKET_NAME;
 
 private:
-    int16_t uid_;
+    int16_t uid;
+    char package_name[50];
     int socket_fd;
     std::list<Connection *> connections;
 };

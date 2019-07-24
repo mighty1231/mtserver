@@ -20,8 +20,7 @@ LOCAL_MODULE:= server
 LOCAL_SRC_FILES := main.cc Server.cc
 LOCAL_CPP_EXTENSION := .cc
 
-LOCAL_C_INCLUDES := \
-	external/stlport/stlport
+LOCAL_C_INCLUDES := bionic external/stlport/stlport
 
 # LOCAL_CFLAGS += -UNDEBUG
 # LOCAL_LDFLAGS := -D_ANDROID_ -lm -llog
