@@ -31,7 +31,6 @@ int Connection::handle() {
             if (shakeval == SPECIAL_VALUE){
                 status = sRunning;
                 printf("connection success!\n");
-                write(socket_fd, &uid, 2);
                 write(socket_fd, package_name, strlen(package_name) + 1);
                 return 1;
             }
@@ -158,6 +157,7 @@ int Server::run() {
                 goto handle_traffic;
             }
 
+            printf("Incoming connection attempt!\n");
             Connection *connection = new Connection(client_sock, uid, package_name);
             connections.push_back(connection);
         }

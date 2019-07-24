@@ -17,7 +17,7 @@ LOCAL_PATH:= $(call my-dir)
 
 include $(CLEAR_VARS)
 LOCAL_MODULE:= server
-LOCAL_SRC_FILES := main.cc Server.cc
+LOCAL_SRC_FILES := main.cc Server.cc Client.cc
 LOCAL_CPP_EXTENSION := .cc
 
 LOCAL_C_INCLUDES := bionic external/stlport/stlport
