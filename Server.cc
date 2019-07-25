@@ -10,8 +10,8 @@ const char *Server::SOCKET_NAME = "/dev/mt/server";
 
 
 Connection::Connection(int socket_fd_, char *package_name_)
-    :socket_fd(socket_fd_),
-    status(sStart), available_index(0) {
+    :socket_fd(socket_fd_), status(sStart),
+    fname_buf_offset(0), available_index(0) {
 
     strcpy(package_name, package_name_);
 }
@@ -24,18 +24,22 @@ Connection::~Connection() {
 int Connection::handle() {
     // several phases
     // send uid, send package name
+    size_t written;
     switch (status) {
         case sStart:
             int32_t shakeval;
-            size_t written;
             written = read(socket_fd, &shakeval, 4);
             if (written == 4) {
-                if (shakeval == SPECIAL_VALUE) {
-                    printf("[Socket %d] Connection Success!\n", socket_fd);
+                if (shakeval == 0x7415963) {
+                    printf("[Socket %d] Connection from Start()\n", socket_fd);
                     if (send_available_prefix()) {
                         status = sRunning;
                         return 1;
                     }
+                } else if (shakeval == 0xDEAD) {
+                    printf("[Socket %d] Connection from Stop()\n", socket_fd);
+                    status = sEnding;
+                    return 1;
                 } else {
                     fprintf(stderr, "[Socket %d] Given special value not expected %X\n", socket_fd, shakeval);
                 }
@@ -50,6 +54,50 @@ int Connection::handle() {
             if (written == 0) {
                 fprintf(stderr, "[Socket %d] Connection closed\n", socket_fd);
                 return 0;
+            }
+
+        case sEnding:
+            int bytes_to_read = (sizeof fname_buf) - fname_buf_offset;
+            if (bytes_to_read == 0) {
+                fprintf(stderr, "[Socket %d] File path longer than %d byte\n",
+                    socket_fd, sizeof fname_buf);
+                return 0;
+            }
+            written = read(socket_fd, fname_buf + fname_buf_offset, bytes_to_read);
+            if (written == 0) {
+                fprintf(stderr, "[Socket %d] Connection closed\n", socket_fd);
+                return 0;
+            } else {
+                // printf("[Socket %d] Written %d %d %d\n", socket_fd, written, fname_buf[0], fname_buf[1]);
+                int left_offset, right_offset;
+                left_offset = fname_buf_offset;
+                right_offset = fname_buf_offset + written;
+                fname_buf_offset = right_offset;
+
+                void *null_loc;
+
+                read_file_loop:
+
+                null_loc = memchr(
+                    fname_buf + left_offset,
+                    0,
+                    right_offset - left_offset
+                );
+
+                if (null_loc == NULL) {
+                    // more bytes should be read.
+                    return 1;
+                } else {
+                    int bytes_to_slide = strlen(fname_buf) + 1;
+                    printf("[Socket %d] File released: %s\n", socket_fd, fname_buf);
+                    memcpy(fname_buf, (char *) null_loc + 1, bytes_to_slide);
+                    left_offset = 0;
+                    right_offset -= bytes_to_slide;
+                    fname_buf_offset -= bytes_to_slide;
+                    if (left_offset == right_offset) 
+                        return 1;
+                    goto read_file_loop;
+                }
             }
     }
     return 1;

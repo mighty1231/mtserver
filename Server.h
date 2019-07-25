@@ -9,7 +9,8 @@
 
 enum connectionStatus {
     sStart, // wait for first response (matching uid)
-    sRunning // logs
+    sRunning, // logs
+    sEnding
 };
 
 class Connection {
@@ -23,12 +24,14 @@ public:
     int send_available_prefix();
 
 private:
-    static const int SPECIAL_VALUE = 0x7415963; // handshake value
 
     int socket_fd;
     char package_name[64];
 
     connectionStatus status;
+
+    char fname_buf[256];
+    int fname_buf_offset;
 
     int available_index;
 };
