@@ -85,11 +85,11 @@ int Connection::send_available_prefix() {
     sprintf(path, "/data/data/%s/mt_%d_", package_name, available_index);
     prefix_length = strlen(path);
     if (write(socket_fd, &prefix_length, 4) != 4) {
-        fprintf(stderr, "[Socket %d] Write prefix errno %d", socket_fd, errno);
+        fprintf(stderr, "[Socket %d] Write prefix errno %d\n", socket_fd, errno);
         return 0;
     }
     if (write(socket_fd, path, prefix_length + 1) != prefix_length + 1) {
-        fprintf(stderr, "[Socket %d] Write prefix errno %d", socket_fd, errno);
+        fprintf(stderr, "[Socket %d] Write prefix errno %d\n", socket_fd, errno);
         return 0;
     }
     printf("[Socket %d] Selected prefix: %s\n", socket_fd, path);
@@ -169,7 +169,7 @@ int Server::run() {
         int num_sockets = select(max_fd + 1, &read_fds, NULL, NULL, NULL);
 
         if (num_sockets < 0) {
-            fprintf(stderr, "select");
+            fprintf(stderr, "select\n");
             return -errno;
         }
 
@@ -189,7 +189,7 @@ int Server::run() {
             );
 
             if (client_sock <= 0) {
-                fprintf(stderr, "accept");
+                fprintf(stderr, "accept\n");
                 goto handle_traffic;
             }
 

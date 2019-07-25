@@ -18,7 +18,7 @@ int main(int argc, char** argv) {
         sprintf(path, "/data/data/%s/", argv[3]);
         DIR *dir = opendir(path);
         if (dir == NULL) {
-            fprintf(stderr, "Directory /data/data/%s/ does not exist", argv[3]);
+            fprintf(stderr, "Directory /data/data/%s/ does not exist\n", argv[3]);
             return 2;
         } else {
             closedir(dir);
