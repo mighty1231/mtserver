@@ -14,21 +14,23 @@ enum connectionStatus {
 
 class Connection {
 public:
-    Connection(int socket, int16_t uid, char *package_name);
+    Connection(int socket, char *package_name);
     virtual ~Connection();
 
     int handle();
 
     int get_socket_fd(){return socket_fd;}
+    int send_available_prefix();
 
 private:
-    // size_t read(void *buffer, int len);
+    static const int SPECIAL_VALUE = 0x7415963; // handshake value
+
     int socket_fd;
-    int16_t uid;
-    char *package_name;
+    char package_name[64];
 
     connectionStatus status;
-    static const int SPECIAL_VALUE = 0x7415963; // handshake value
+
+    int available_index;
 };
 
 
@@ -44,7 +46,7 @@ public:
 
 private:
     int16_t uid;
-    char package_name[50];
+    char package_name[64];
     int socket_fd;
     std::list<Connection *> connections;
 };

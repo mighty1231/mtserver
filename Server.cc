@@ -2,15 +2,18 @@
 #include <cstdio>
 
 #include <unistd.h>
+#include <dirent.h>
 
 #include "Server.h"
 
 const char *Server::SOCKET_NAME = "/dev/mt/server";
 
 
-Connection::Connection(int socket_fd_, int16_t uid_, char *package_name_)
-    :socket_fd(socket_fd_), uid(uid_), package_name(package_name_),
-    status(sStart) {
+Connection::Connection(int socket_fd_, char *package_name_)
+    :socket_fd(socket_fd_),
+    status(sStart), available_index(0) {
+
+    strcpy(package_name, package_name_);
 }
 
 Connection::~Connection() {
@@ -21,45 +24,81 @@ Connection::~Connection() {
 int Connection::handle() {
     // several phases
     // send uid, send package name
-
     switch (status) {
         case sStart:
-        int32_t shakeval;
-        size_t written;
-        written = read(socket_fd, &shakeval, 4);
-        if (written == 4) {
-            if (shakeval == SPECIAL_VALUE){
-                status = sRunning;
-                printf("connection success!\n");
-                write(socket_fd, package_name, strlen(package_name) + 1);
-                return 1;
-            }
-            fprintf(stderr, "special value %X\n", shakeval);
-        }
-        return 0;
+            int32_t shakeval;
+            size_t written;
+            written = read(socket_fd, &shakeval, 4);
+            if (written == 4) {
+                if (shakeval == SPECIAL_VALUE) {
+                    printf("[Socket %d] Connection Success!\n", socket_fd);
+                    if (send_available_prefix()) {
+                        status = sRunning;
+                        return 1;
+                    }
+                } else {
+                    fprintf(stderr, "[Socket %d] Given special value not expected %X\n", socket_fd, shakeval);
+                }
+            } 
+            return 0;
 
         case sRunning:
-        printf("running...\n");
-        char t;
-        written = read(socket_fd, &t, 1);
-        if (written == 0) {
-            fprintf(stderr, "End on the running\n");
-            return 0;
-        }
+
+            // just check running
+            char t;
+            written = read(socket_fd, &t, 1);
+            if (written == 0) {
+                fprintf(stderr, "[Socket %d] Connection closed\n", socket_fd);
+                return 0;
+            }
     }
     return 1;
 }
 
-// Connection::read(void *buffer, int size) {
-//     // fd_set read_fds;
+int Connection::send_available_prefix() {
+    char path[256], prefix[256];
+    sprintf(path, "/data/data/%s/", package_name);
 
-//     // FD_ZERO(&read_fds);
-//     // FD_SET(socket_fd, )
-// }
+    DIR *dir = opendir(path);
+    dirent *entry;
+    int32_t prefix_length;
+
+    while (true) { // loop for available_index
+        sprintf(prefix, "mt_%d_", available_index);
+        prefix_length = strlen(prefix);
+        while ((entry = readdir(dir)) != NULL) {
+            if (memcmp(entry->d_name, prefix, prefix_length) == 0) {
+                // If there is some file with given prefix,
+                //    prefix should be changed.
+                goto continue_point;
+            }
+        }
+        // found
+        break;
+
+        continue_point:
+        available_index++;
+    }
+    closedir(dir);
+
+    // found and send to socket
+    sprintf(path, "/data/data/%s/mt_%d_", package_name, available_index);
+    prefix_length = strlen(path);
+    if (write(socket_fd, &prefix_length, 4) != 4) {
+        fprintf(stderr, "[Socket %d] Write prefix errno %d", socket_fd, errno);
+        return 0;
+    }
+    if (write(socket_fd, path, prefix_length + 1) != prefix_length + 1) {
+        fprintf(stderr, "[Socket %d] Write prefix errno %d", socket_fd, errno);
+        return 0;
+    }
+    printf("[Socket %d] Selected prefix: %s\n", socket_fd, path);
+    available_index += 1;
+    return 1;
+}
 
 Server::Server(int16_t uid_, char *package_name): uid(uid_) {
     int yes;
-    printf("Creating Socket...\n");
     if ((socket_fd = socket(AF_UNIX, SOCK_STREAM, 0)) == -1)  {
         fprintf(stderr, "socket\n");
         socket_fd = -1;
@@ -71,6 +110,7 @@ Server::Server(int16_t uid_, char *package_name): uid(uid_) {
         socket_fd = -1;
     }
 
+    printf("Server with uid %hu package name %s is constructed\n", uid_, package_name);
     strcpy(this->package_name, package_name);
 }
 
@@ -86,6 +126,7 @@ Server::~Server() {
 
 int Server::run() {
     if (socket_fd == -1) return -1;
+    signal(SIGPIPE, SIG_IGN);
     sockaddr_un server_addr;
     int yes;
 
@@ -103,6 +144,8 @@ int Server::run() {
         fprintf(stderr, "listen\n");
         return -errno;
     }
+
+    int package_length = strlen(package_name);
 
     std::list<Connection *>::iterator iterator;
     for (;;) {
@@ -150,15 +193,18 @@ int Server::run() {
                 goto handle_traffic;
             }
 
+            printf("[Socket %d] Connection attempt!\n", client_sock);
+
             // send uid
-            size_t ret = write(client_sock, &uid, 2);
+            int ret;
+            ret = write(client_sock, &uid, 2);
             if (ret != 2) {
-                fprintf(stderr, "write uid");
+                fprintf(stderr, "write uid\n");
                 goto handle_traffic;
             }
 
-            printf("Incoming connection attempt!\n");
-            Connection *connection = new Connection(client_sock, uid, package_name);
+            // Add valid connection to list
+            Connection *connection = new Connection(client_sock, package_name);
             connections.push_back(connection);
         }
 
