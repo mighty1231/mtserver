@@ -16,7 +16,7 @@ LOCAL_PATH:= $(call my-dir)
 
 
 include $(CLEAR_VARS)
-LOCAL_MODULE:= server
+LOCAL_MODULE:= mtserver
 LOCAL_SRC_FILES := main.cc Server.cc Client.cc
 LOCAL_CPP_EXTENSION := .cc
 
