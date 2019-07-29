@@ -10,7 +10,7 @@ const char *Server::SOCKET_NAME = "/dev/mt/server";
 
 
 Connection::Connection(int socket_fd_, char *package_name_)
-    :socket_fd(socket_fd_), status(sStart),
+    :socket_fd(socket_fd_), pid(-1), status(sStart),
     fname_buf_offset(0), available_index(0) {
 
     strcpy(package_name, package_name_);
@@ -27,17 +27,24 @@ int Connection::handle() {
     size_t written;
     switch (status) {
         case sStart:
+            written = read(socket_fd, &pid, 4);
+            if (written == 4) {
+                status = sPidRead;
+                return 1;
+            }
+            return 0;
+        case sPidRead:
             int32_t shakeval;
             written = read(socket_fd, &shakeval, 4);
             if (written == 4) {
                 if (shakeval == 0x7415963) {
-                    printf("[Socket %d] Connection from Start()\n", socket_fd);
+                    printf("[Socket %d] Connection with pid %d from Start()\n", socket_fd, pid);
                     if (send_available_prefix()) {
                         status = sRunning;
                         return 1;
                     }
                 } else if (shakeval == 0xDEAD) {
-                    printf("[Socket %d] Connection from Stop()\n", socket_fd);
+                    printf("[Socket %d] Connection with pid %d from Stop()\n", socket_fd, pid);
                     status = sEnding;
                     return 1;
                 } else {

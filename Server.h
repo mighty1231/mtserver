@@ -9,6 +9,7 @@
 
 enum connectionStatus {
     sStart, // wait for first response (matching uid)
+    sPidRead, // pid is read
     sRunning, // logs
     sEnding
 };
@@ -24,8 +25,8 @@ public:
     int send_available_prefix();
 
 private:
-
     int socket_fd;
+    pid_t pid;
     char package_name[64];
 
     connectionStatus status;
