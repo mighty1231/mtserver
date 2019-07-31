@@ -1,6 +1,20 @@
 #include "Server.h"
 #include "Client.h"
 #include <dirent.h>
+#include <pwd.h>
+#include <sys/stat.h>
+
+uid_t getuid(const char *package_name) {
+    char buffer[256];
+    sprintf(buffer, "/data/data/%s", package_name);
+
+    struct stat info;
+    if (stat(buffer, &info) == 0) {
+        return info.st_uid;
+    } else {
+        return 0;
+    }
+}
 
 int main(int argc, char** argv) {
     if (argc <= 1) {
@@ -8,24 +22,17 @@ int main(int argc, char** argv) {
     }
 
     if (strcmp(argv[1], "server") == 0) {
-        if (argc <= 3) {
+        if (argc <= 2) {
             return -1;
         }
-        int16_t uid = (int16_t) (atoi(argv[2]) & 0xFFFF);
-
-        // assert /data/data/(package_name) exists
-        char path[256];
-        sprintf(path, "/data/data/%s/", argv[3]);
-        DIR *dir = opendir(path);
-        if (dir == NULL) {
-            fprintf(stderr, "Directory /data/data/%s/ does not exist\n", argv[3]);
-            return 2;
-        } else {
-            closedir(dir);
-            Server server(uid, argv[3]);
-            return server.run();
+        uid_t uid = getuid(argv[2]);
+        if (uid == 0) {
+            fprintf(stderr, "Package %s is not found\n", argv[2]);
+            return -1;
         }
 
+        Server server(uid, argv[2]);
+        return server.run();
     } else if (strcmp(argv[1], "client") == 0) {
         if (argc <= 2) {
             return -1;

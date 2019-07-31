@@ -41,7 +41,7 @@ private:
 class Server {
 
 public:
-    Server (int16_t uid, char *package_name);
+    Server (uid_t uid, char *package_name);
     virtual ~Server();
 
     int run();
@@ -49,7 +49,7 @@ public:
     static const char *SOCKET_NAME;
 
 private:
-    int16_t uid;
+    uid_t uid;
     char package_name[64];
     int socket_fd;
     std::list<Connection *> connections;

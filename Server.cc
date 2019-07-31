@@ -152,7 +152,7 @@ int Connection::send_available_prefix() {
     return 1;
 }
 
-Server::Server(int16_t uid_, char *package_name): uid(uid_) {
+Server::Server(uid_t uid_, char *package_name): uid(uid_) {
     int yes;
     if ((socket_fd = socket(AF_UNIX, SOCK_STREAM, 0)) == -1)  {
         fprintf(stderr, "socket\n");
@@ -165,7 +165,7 @@ Server::Server(int16_t uid_, char *package_name): uid(uid_) {
         socket_fd = -1;
     }
 
-    printf("Server with uid %hu package name %s is constructed\n", uid_, package_name);
+    printf("Server with uid %u package name %s is constructed\n", uid_, package_name);
     strcpy(this->package_name, package_name);
 }
 
@@ -252,8 +252,8 @@ int Server::run() {
 
             // send uid
             int ret;
-            ret = write(client_sock, &uid, 2);
-            if (ret != 2) {
+            ret = write(client_sock, &uid, sizeof (uid_t));
+            if (ret != sizeof (uid_t)) {
                 fprintf(stderr, "write uid\n");
                 goto handle_traffic;
             }
