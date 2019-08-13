@@ -14,27 +14,27 @@ enum connectionStatus {
     sEnding
 };
 
+class Server;
+
 class Connection {
 public:
-    Connection(int socket, char *package_name);
+    Connection(int socket, Server *server);
     virtual ~Connection();
 
     int handle();
 
     int get_socket_fd(){return socket_fd;}
-    int send_available_prefix();
 
 private:
+    int send_available_prefix();
     int socket_fd;
     pid_t pid;
-    char package_name[64];
+    Server *server;
 
     connectionStatus status;
 
     char fname_buf[256];
     int fname_buf_offset;
-
-    int available_index;
 };
 
 
@@ -45,6 +45,7 @@ public:
     virtual ~Server();
 
     int run();
+    int get_available_prefix(char *prefix_buf);
 
     static const char *SOCKET_NAME;
 
@@ -53,6 +54,7 @@ private:
     char package_name[64];
     int socket_fd;
     std::list<Connection *> connections;
+    int available_index;
 };
 
 

@@ -9,11 +9,9 @@
 const char *Server::SOCKET_NAME = "/dev/mt/server";
 
 
-Connection::Connection(int socket_fd_, char *package_name_)
-    :socket_fd(socket_fd_), pid(-1), status(sStart),
-    fname_buf_offset(0), available_index(0) {
-
-    strcpy(package_name, package_name_);
+Connection::Connection(int socket_fd_, Server *server_)
+    :socket_fd(socket_fd_), pid(-1), server(server_),
+    status(sStart), fname_buf_offset(0) {
 }
 
 Connection::~Connection() {
@@ -46,6 +44,7 @@ int Connection::handle() {
                 } else if (shakeval == 0xDEAD) {
                     printf("[Socket %d] Connection with pid %d from Stop()\n", socket_fd, pid);
                     status = sEnding;
+                    fname_buf_offset = 0;
                     return 1;
                 } else {
                     fprintf(stderr, "[Socket %d] Given special value not expected %X\n", socket_fd, shakeval);
@@ -75,7 +74,6 @@ int Connection::handle() {
                 fprintf(stderr, "[Socket %d] Connection closed\n", socket_fd);
                 return 0;
             } else {
-                // printf("[Socket %d] Written %d %d %d\n", socket_fd, written, fname_buf[0], fname_buf[1]);
                 int left_offset, right_offset;
                 left_offset = fname_buf_offset;
                 right_offset = fname_buf_offset + written;
@@ -83,21 +81,15 @@ int Connection::handle() {
 
                 void *null_loc;
 
-                read_file_loop:
-
-                null_loc = memchr(
-                    fname_buf + left_offset,
-                    0,
-                    right_offset - left_offset
-                );
-
+            read_file_loop:
+                null_loc = memchr(fname_buf + left_offset, 0, right_offset - left_offset);
                 if (null_loc == NULL) {
                     // more bytes should be read.
                     return 1;
                 } else {
                     int bytes_to_slide = strlen(fname_buf) + 1;
                     printf("[Socket %d] File released: %s\n", socket_fd, fname_buf);
-                    memcpy(fname_buf, (char *) null_loc + 1, bytes_to_slide);
+                    memmove(fname_buf, (char *) null_loc + 1, right_offset - bytes_to_slide);
                     left_offset = 0;
                     right_offset -= bytes_to_slide;
                     fname_buf_offset -= bytes_to_slide;
@@ -111,34 +103,9 @@ int Connection::handle() {
 }
 
 int Connection::send_available_prefix() {
-    char path[256], prefix[256];
-    sprintf(path, "/data/data/%s/", package_name);
+    char path[256];
+    int prefix_length = server->get_available_prefix(path);
 
-    DIR *dir = opendir(path);
-    dirent *entry;
-    int32_t prefix_length;
-
-    while (true) { // loop for available_index
-        sprintf(prefix, "mt_%d_", available_index);
-        prefix_length = strlen(prefix);
-        while ((entry = readdir(dir)) != NULL) {
-            if (memcmp(entry->d_name, prefix, prefix_length) == 0) {
-                // If there is some file with given prefix,
-                //    prefix should be changed.
-                goto continue_point;
-            }
-        }
-        // found
-        break;
-
-        continue_point:
-        available_index++;
-    }
-    closedir(dir);
-
-    // found and send to socket
-    sprintf(path, "/data/data/%s/mt_%d_", package_name, available_index);
-    prefix_length = strlen(path);
     if (write(socket_fd, &prefix_length, 4) != 4) {
         fprintf(stderr, "[Socket %d] Write prefix errno %d\n", socket_fd, errno);
         return 0;
@@ -148,11 +115,11 @@ int Connection::send_available_prefix() {
         return 0;
     }
     printf("[Socket %d] Selected prefix: %s\n", socket_fd, path);
-    available_index += 1;
     return 1;
 }
 
-Server::Server(uid_t uid_, char *package_name): uid(uid_) {
+Server::Server(uid_t uid_, char *package_name)
+        : uid(uid_), available_index(0) {
     int yes;
     if ((socket_fd = socket(AF_UNIX, SOCK_STREAM, 0)) == -1)  {
         fprintf(stderr, "socket\n");
@@ -177,6 +144,38 @@ Server::~Server() {
         iterator++;
     }
     close(socket_fd);
+}
+
+int Server::get_available_prefix(char *prefix_buf) {
+    char tmpbuf[256];
+    sprintf(tmpbuf, "/data/data/%s/", package_name);
+
+    DIR *dir = opendir(tmpbuf);
+    dirent *entry;
+    int32_t flen;
+
+    while (true) { // loop for available_index
+        sprintf(tmpbuf, "mt_%d_", available_index);
+        flen = strlen(tmpbuf);
+        while ((entry = readdir(dir)) != NULL) {
+            if (memcmp(entry->d_name, tmpbuf, flen) == 0) {
+                // If there is some file with given tmpbuf,
+                //    tmpbuf should be changed.
+                goto continue_point;
+            }
+        }
+        // found
+        break;
+
+        continue_point:
+        available_index++;
+    }
+    closedir(dir);
+
+    // found and send to socket
+    int length = sprintf(prefix_buf, "/data/data/%s/mt_%d_", package_name, available_index);
+    available_index++;
+    return length;
 }
 
 int Server::run() {
@@ -259,7 +258,7 @@ int Server::run() {
             }
 
             // Add valid connection to list
-            Connection *connection = new Connection(client_sock, package_name);
+            Connection *connection = new Connection(client_sock, this);
             connections.push_back(connection);
         }
 
