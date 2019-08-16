@@ -7,6 +7,18 @@
 
 #include <list>
 
+// Currently, LOG_DEX_PC_MOVED is not used
+#define LOG_METHOD_ENTER      0x00000001
+#define LOG_METHOD_EXIT       0x00000002
+#define LOG_METHOD_UNWIND     0x00000004
+#define LOG_DEX_PC_MOVED      0x00000008
+#define LOG_FIELD_READ        0x00000010
+#define LOG_FIELD_WRITE       0x00000020
+#define LOG_EXCEPTION_CAUGHT  0x00000040
+#define LOG_COVERAGE          0x00000080
+#define LOG_FILTER            0x00000100
+#define LOG_ALL_FLAGS         0x000001F7
+
 enum connectionStatus {
     sStart, // wait for first response (matching uid)
     sPidRead, // pid is read
@@ -41,13 +53,14 @@ private:
 class Server {
 
 public:
-    Server (uid_t uid, char *package_name);
+    Server (uid_t uid, char *package_name, uint32_t log_type);
     virtual ~Server();
 
     int run();
     int get_available_prefix(char *prefix_buf);
 
     static const char *SOCKET_NAME;
+    const uint32_t log_type;
 
 private:
     uid_t uid;

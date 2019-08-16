@@ -37,10 +37,12 @@ int Connection::handle() {
             if (written == 4) {
                 if (shakeval == 0x7415963) {
                     printf("[Socket %d] Connection with pid %d from Start()\n", socket_fd, pid);
-                    if (send_available_prefix()) {
+
+                    if (write(socket_fd, &server->log_type, 4) == 4 && send_available_prefix()) {
                         status = sRunning;
                         return 1;
                     }
+
                 } else if (shakeval == 0xDEAD) {
                     printf("[Socket %d] Connection with pid %d from Stop()\n", socket_fd, pid);
                     status = sEnding;
@@ -118,8 +120,8 @@ int Connection::send_available_prefix() {
     return 1;
 }
 
-Server::Server(uid_t uid_, char *package_name)
-        : uid(uid_), available_index(0) {
+Server::Server(uid_t uid_, char *package_name, uint32_t log_type_)
+        : uid(uid_), log_type(log_type_), available_index(0) {
     int yes;
     if ((socket_fd = socket(AF_UNIX, SOCK_STREAM, 0)) == -1)  {
         fprintf(stderr, "socket\n");
