@@ -42,12 +42,6 @@ int Connection::handle() {
                         status = sRunning;
                         return 1;
                     }
-
-                } else if (shakeval == 0xDEAD) {
-                    printf("[Socket %d] Connection with pid %d from Stop()\n", socket_fd, pid);
-                    status = sEnding;
-                    fname_buf_offset = 0;
-                    return 1;
                 } else {
                     fprintf(stderr, "[Socket %d] Given special value not expected %X\n", socket_fd, shakeval);
                 }
@@ -55,19 +49,6 @@ int Connection::handle() {
             return 0;
 
         case sRunning:
-
-            // just check running
-            int32_t message;
-            written = read(socket_fd, &message, 4);
-            if (written == 0) {
-                fprintf(stderr, "[Socket %d] Connection closed\n", socket_fd);
-                return 0;
-            } else if (written == 4) {
-                printf("[Socket %d] Hi client! received number is %d\n", socket_fd, message);
-                return 1;
-            }
-
-        case sEnding:
             int bytes_to_read = (sizeof fname_buf) - fname_buf_offset;
             if (bytes_to_read == 0) {
                 fprintf(stderr, "[Socket %d] File path longer than %d byte\n",
@@ -76,7 +57,11 @@ int Connection::handle() {
             }
             written = read(socket_fd, fname_buf + fname_buf_offset, bytes_to_read);
             if (written == 0) {
-                fprintf(stderr, "[Socket %d] Connection closed\n", socket_fd);
+                if (fname_buf_offset != 0) {
+                    fname_buf[fname_buf_offset] = 0;
+                    fprintf(stderr, "[Socket %d] Incomplete file released: release %s\n", socket_fd, fname_buf);
+                }
+                printf("[Socket %d] Connection closed, prefix=%s\n", socket_fd, prefix_buf);
                 return 0;
             } else {
                 int left_offset, right_offset;
@@ -108,18 +93,17 @@ int Connection::handle() {
 }
 
 int Connection::send_available_prefix() {
-    char path[256];
-    int prefix_length = server->get_available_prefix(path);
+    int prefix_length = server->get_available_prefix(prefix_buf);
 
     if (write(socket_fd, &prefix_length, 4) != 4) {
         fprintf(stderr, "[Socket %d] Write prefix errno %d\n", socket_fd, errno);
         return 0;
     }
-    if (write(socket_fd, path, prefix_length + 1) != prefix_length + 1) {
+    if (write(socket_fd, prefix_buf, prefix_length + 1) != prefix_length + 1) {
         fprintf(stderr, "[Socket %d] Write prefix errno %d\n", socket_fd, errno);
         return 0;
     }
-    printf("[Socket %d] Selected prefix: %s\n", socket_fd, path);
+    printf("[Socket %d] Selected prefix: %s\n", socket_fd, prefix_buf);
     return 1;
 }
 

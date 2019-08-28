@@ -32,10 +32,9 @@ Client::Client() {
 // The answer is 'can'
 static void *tempfunc(void *temparg) {
     // Check fd
-    int32_t MAGIC_NUMBER = 7777;
     int socket_fd = *(int *) temparg;
-    usleep(1000000);
-    if (write(socket_fd, &MAGIC_NUMBER, 4) != 4) {
+    usleep(1000000); // wait 1 second
+    if (write(socket_fd, "Hi_from_new_thread!", strlen("Hi_from_new_thread!") + 1) != strlen("Hi_from_new_thread!") + 1) {
         // NOT REACHABLE
         fprintf(stderr, "write on new thread, errno %d\n", errno);
     } else {
@@ -71,11 +70,9 @@ int Client::run() {
 
         pthread_t thread;
         pthread_create(&thread, NULL, &tempfunc, &socket_fd);
-        int32_t MESSAGE = 1234;
-        write(socket_fd, &MESSAGE, 4);
+        write(socket_fd, "Hi_from_original_thread", strlen("Hi_from_original_thread") + 1);
         pthread_join(thread, NULL);
-        MESSAGE = 5555;
-        write(socket_fd, &MESSAGE, 4); // This write should fails due to close on thread
+        write(socket_fd, "Message_that_should_be_failed", strlen("Message_that_should_be_failed") + 1);// This write should fails due to close on thread
         close(socket_fd);
         return 0;
     } else {

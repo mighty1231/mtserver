@@ -24,11 +24,11 @@
 enum connectionStatus {
     sStart, // wait for first response (matching uid)
     sPidRead, // pid is read
-    sRunning, // logs
-    sEnding
+    sRunning
 };
 
 class Server;
+
 
 class Connection {
 public:
@@ -47,6 +47,7 @@ private:
 
     connectionStatus status;
 
+    char prefix_buf[256];
     char fname_buf[256];
     int fname_buf_offset;
 };
