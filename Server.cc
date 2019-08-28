@@ -134,8 +134,12 @@ Server::Server(uid_t uid_, char *package_name, uint32_t log_type_)
         socket_fd = -1;
     }
 
-    printf("Server with uid %u package name %s is constructed\n", uid_, package_name);
-    strcpy(this->package_name, package_name);
+    if (is_test_server()) {
+        printf("Test server is constructed\n");
+    } else {
+        printf("Server with uid %u package name %s is constructed\n", uid_, package_name);
+        strcpy(this->package_name, package_name);
+    }
 }
 
 Server::~Server() {
@@ -149,6 +153,11 @@ Server::~Server() {
 }
 
 int Server::get_available_prefix(char *prefix_buf) {
+    if (is_test_server()) {
+        int length = sprintf(prefix_buf, "Hello_my_friend_%d", available_index);
+        available_index++;
+        return length;
+    }
     char tmpbuf[256];
     sprintf(tmpbuf, "/data/data/%s/", package_name);
 

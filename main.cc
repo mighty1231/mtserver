@@ -62,37 +62,38 @@ int main(int argc, char** argv) {
         if (argc <= 2) {
             return -1;
         }
-        uid_t uid = getuid(argv[2]);
-        if (uid == 0) {
-            fprintf(stderr, "Package %s is not found\n", argv[2]);
-            return -1;
-        }
-
-        uint32_t log_type;
-        if (argc == 3) {
-            log_type = LOG_METHOD_ENTER
-                       | LOG_METHOD_EXIT
-                       | LOG_METHOD_UNWIND
-                       | LOG_FIELD_READ
-                       | LOG_FIELD_WRITE
-                       | LOG_EXCEPTION_CAUGHT
-                       | LOG_COVERAGE;
+        if (strcmp(argv[2], "theclient") == 0) {
+            // To communicate with custom client
+            Server server(0, NULL, 0);
+            return server.run();
         } else {
-            log_type = parseflag_16(argv[3]);
-            if (log_type & ~LOG_ALL_FLAGS) {
+            uid_t uid = getuid(argv[2]);
+            if (uid == 0) {
+                fprintf(stderr, "Package %s is not found\n", argv[2]);
                 return -1;
             }
-        }
 
-        Server server(uid, argv[2], log_type);
-        return server.run();
+            uint32_t log_type;
+            if (argc == 3) {
+                log_type = LOG_METHOD_ENTER
+                           | LOG_METHOD_EXIT
+                           | LOG_METHOD_UNWIND
+                           | LOG_FIELD_READ
+                           | LOG_FIELD_WRITE
+                           | LOG_EXCEPTION_CAUGHT
+                           | LOG_COVERAGE;
+            } else {
+                log_type = parseflag_16(argv[3]);
+                if (log_type & ~LOG_ALL_FLAGS) {
+                    return -1;
+                }
+            }
+
+            Server server(uid, argv[2], log_type);
+            return server.run();
+        }
     } else if (strcmp(argv[1], "client") == 0) {
-        if (argc <= 2) {
-            return -1;
-        }
-        int16_t uid = (int16_t) (atoi(argv[2]) & 0xFFFF);
-
-        Client client(uid);
+        Client client;
         return client.run();
     } else if (strcmp(argv[1], "test") == 0) {
         test_parseflag_16();

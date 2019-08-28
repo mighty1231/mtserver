@@ -7,6 +7,8 @@
 
 #include <list>
 
+#define TEST_SERVER_UID       0
+
 // Currently, LOG_DEX_PC_MOVED is not used
 #define LOG_METHOD_ENTER      0x00000001
 #define LOG_METHOD_EXIT       0x00000002
@@ -58,6 +60,7 @@ public:
 
     int run();
     int get_available_prefix(char *prefix_buf);
+    bool is_test_server() {return (uid == TEST_SERVER_UID);}
 
     static const char *SOCKET_NAME;
     const uint32_t log_type;

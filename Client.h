@@ -3,7 +3,7 @@
 
 class Client {
 public:
-    Client(int16_t uid);
+    Client();
 
     int run();
 
