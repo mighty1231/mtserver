@@ -2,13 +2,14 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <pthread.h>
 
 #include "Client.h"
 
 Client::Client() {
     sockaddr_un server_addr;
     if ((socket_fd = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
-        fprintf(stderr, "socket");
+        fprintf(stderr, "socket\n");
         socket_fd = -1;
         return;
     }
@@ -20,11 +21,28 @@ Client::Client() {
         int addrlen = sizeof server_addr.sun_family + strlen(&server_addr.sun_path[1]) + 1;
 
         if (connect(socket_fd, (sockaddr *)&server_addr, addrlen) < 0) {
-            fprintf(stderr, "connect");
+            fprintf(stderr, "connect\n");
             close(socket_fd);
             socket_fd = -1;
         }
     }
+}
+
+// Test whether new thread can use unix socket created by other one.
+// The answer is 'can'
+static void *tempfunc(void *temparg) {
+    // Check fd
+    int32_t MAGIC_NUMBER = 7777;
+    int socket_fd = *(int *) temparg;
+    usleep(1000000);
+    if (write(socket_fd, &MAGIC_NUMBER, 4) != 4) {
+        // NOT REACHABLE
+        fprintf(stderr, "write on new thread, errno %d\n", errno);
+    } else {
+        printf("Write on new thread success!\n");
+        close(socket_fd);
+    }
+    return NULL;
 }
 
 int Client::run() {
@@ -50,10 +68,19 @@ int Client::run() {
         read(socket_fd, buf, prefix_length + 1);
         printf("Given logflag: %d\n", logflag);
         printf("Given message: %s\n", buf);
+
+        pthread_t thread;
+        pthread_create(&thread, NULL, &tempfunc, &socket_fd);
+        int32_t MESSAGE = 1234;
+        write(socket_fd, &MESSAGE, 4);
+        pthread_join(thread, NULL);
+        MESSAGE = 5555;
+        write(socket_fd, &MESSAGE, 4); // This write should fails due to close on thread
         close(socket_fd);
         return 0;
     } else {
-        printf("UID NOT MATCH\n");
+        // NOT REACHABLE
+        printf("UID does not matches!\n");
         return -1;
 
     }

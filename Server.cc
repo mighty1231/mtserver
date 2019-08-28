@@ -57,11 +57,14 @@ int Connection::handle() {
         case sRunning:
 
             // just check running
-            char t;
-            written = read(socket_fd, &t, 1);
+            int32_t message;
+            written = read(socket_fd, &message, 4);
             if (written == 0) {
                 fprintf(stderr, "[Socket %d] Connection closed\n", socket_fd);
                 return 0;
+            } else if (written == 4) {
+                printf("[Socket %d] Hi client! received number is %d\n", socket_fd, message);
+                return 1;
             }
 
         case sEnding:
