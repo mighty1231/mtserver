@@ -55,11 +55,13 @@ uid_t getuid(const char *package_name) {
 
 int main(int argc, char** argv) {
     if (argc <= 1) {
+        fprintf(stderr, "Usage: %s server package_name [logging_flag]\n", argv[0]);
         return -1;
     }
 
     if (strcmp(argv[1], "server") == 0) {
         if (argc <= 2) {
+            fprintf(stderr, "Usage: %s server package_name [logging_flag]\n", argv[0]);
             return -1;
         }
         if (strcmp(argv[2], "theclient") == 0) {
@@ -74,17 +76,23 @@ int main(int argc, char** argv) {
             }
 
             uint32_t log_type;
+            uint32_t default_log_type = LOG_METHOD_ENTER
+                                        | LOG_METHOD_EXIT
+                                        | LOG_METHOD_UNWIND
+                                        | LOG_FIELD_READ
+                                        | LOG_FIELD_WRITE
+                                        | LOG_EXCEPTION_CAUGHT
+                                        | LOG_FIELD_TYPE3 // App-specific fields
+                                        | LOG_METHOD_TYPE0 // Non-basic API methods
+                                        | LOG_METHOD_TYPE3; // App-defined methods
             if (argc == 3) {
-                log_type = LOG_METHOD_ENTER
-                           | LOG_METHOD_EXIT
-                           | LOG_METHOD_UNWIND
-                           | LOG_FIELD_READ
-                           | LOG_FIELD_WRITE
-                           | LOG_EXCEPTION_CAUGHT
-                           | LOG_COVERAGE;
+                /* Default log type */
+                log_type = default_log_type;
             } else {
                 log_type = parseflag_16(argv[3]);
                 if (log_type & ~LOG_ALL_FLAGS) {
+                    fprintf(stderr, "Logging flag should belong in %08X, default value is %08X\n",
+                        LOG_ALL_FLAGS, default_log_type);
                     return -1;
                 }
             }
