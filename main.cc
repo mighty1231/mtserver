@@ -83,7 +83,7 @@ int main(int argc, char** argv) {
                                         | LOG_FIELD_WRITE
                                         | LOG_EXCEPTION_CAUGHT
                                         | LOG_FIELD_TYPE3 // App-specific fields
-                                        | LOG_METHOD_TYPE0 // Non-basic API methods
+                                        | LOG_METHOD_TYPE1 // Non-basic API methods
                                         | LOG_METHOD_TYPE3; // App-defined methods
             if (argc == 3) {
                 /* Default log type */
