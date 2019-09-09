@@ -19,6 +19,7 @@
 #define LOG_EXCEPTION_CAUGHT  0x00000040
 #define LOG_COVERAGE          0x00000080
 #define LOG_MESSAGE           0x00000100
+#define CONNECT_APE           0x00010000
 #define LOG_FIELD_TYPE_FLAGS  0x0F000000
 #define LOG_FIELD_TYPE0       0x01000000
 #define LOG_FIELD_TYPE1       0x02000000
@@ -29,7 +30,7 @@
 #define LOG_METHOD_TYPE1      0x20000000
 #define LOG_METHOD_TYPE2      0x40000000
 #define LOG_METHOD_TYPE3      0x80000000
-#define LOG_ALL_FLAGS         0xFF0001FF
+#define LOG_ALL_FLAGS         0xFF0101FF
 
 enum connectionStatus {
     sStart, // wait for first response (matching uid)
