@@ -4,6 +4,7 @@
 #include <pwd.h>
 #include <sys/stat.h>
 #include <string>
+#include <time.h>
 
 
 #define TEST(t)                               \
@@ -38,7 +39,13 @@ void test_parseflag_16() {
     TEST(parseflag_16("9") == 9);
     TEST(parseflag_16("20") == 32);
     TEST(parseflag_16("faf") == 4015);
-    TEST(parseflag_16("faf") == 4016);
+    TEST(parseflag_16("AAa") == 2730);
+
+    timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+    printf("sec %ld nsec %ld\n", ts.tv_sec, ts.tv_nsec);
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    printf("sec %ld nsec %ld\n", ts.tv_sec, ts.tv_nsec);
 }
 
 uid_t getuid(const char *package_name) {

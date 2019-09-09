@@ -72,13 +72,14 @@ public:
     int run();
     int get_available_prefix(char *prefix_buf);
     bool is_test_server() {return (uid == TEST_SERVER_UID);}
+    int get_log_type() {return log_type;}
 
     static const char *SOCKET_NAME;
-    const uint32_t log_type;
 
 private:
     uid_t uid;
     char package_name[64];
+    const uint32_t log_type;
     int socket_fd;
     std::list<Connection *> connections;
     int available_index;

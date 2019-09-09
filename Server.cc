@@ -37,8 +37,8 @@ int Connection::handle() {
             if (written == 4) {
                 if (shakeval == 0x7415963) {
                     printf("[Socket %d] Connection with pid %d from Start()\n", socket_fd, pid);
-
-                    if (write(socket_fd, &server->log_type, 4) == 4 && send_available_prefix()) {
+                    int log_type = server->get_log_type();
+                    if (write(socket_fd, &log_type, 4) == 4 && send_available_prefix()) {
                         status = sRunning;
                         return 1;
                     }
@@ -124,7 +124,7 @@ Server::Server(uid_t uid_, char *package_name, uint32_t log_type_)
     if (is_test_server()) {
         printf("Test server is constructed\n");
     } else {
-        printf("Server with uid %u package name %s is constructed\n", uid_, package_name);
+        printf("Server with uid %u package name %s is constructed on Socket %s\n", uid_, package_name, SOCKET_NAME);
         strcpy(this->package_name, package_name);
     }
 }
