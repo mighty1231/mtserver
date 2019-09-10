@@ -7,8 +7,6 @@
 
 #include <list>
 
-#define TEST_SERVER_UID       0
-
 // Currently, LOG_DEX_PC_MOVED is not used
 #define LOG_METHOD_ENTER      0x00000001
 #define LOG_METHOD_EXIT       0x00000002
@@ -31,6 +29,8 @@
 #define LOG_METHOD_TYPE2      0x40000000
 #define LOG_METHOD_TYPE3      0x80000000
 #define LOG_ALL_FLAGS         0xFF0101FF
+
+#define APE_PACKAGE "ape"
 
 enum connectionStatus {
     sStart, // wait for first response (matching uid)
@@ -72,7 +72,7 @@ public:
 
     int run();
     int get_available_prefix(char *prefix_buf);
-    bool is_test_server() {return (uid == TEST_SERVER_UID);}
+    bool is_test_server() {return package_name[0] == 0;}
     int get_log_type() {return log_type;}
 
     static const char *SOCKET_NAME;
@@ -84,6 +84,7 @@ private:
     int socket_fd;
     std::list<Connection *> connections;
     int available_index;
+    bool _target_ape;
 };
 
 

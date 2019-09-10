@@ -75,38 +75,45 @@ int main(int argc, char** argv) {
             // To communicate with custom client
             Server server(0, NULL, 0);
             return server.run();
+        }
+
+        // parse uid
+        uid_t uid;
+        if (strcmp(argv[2], APE_PACKAGE) == 0) {
+            uid = 0;
         } else {
-            uid_t uid = getuid(argv[2]);
+            uid = getuid(argv[2]);
             if (uid == 0) {
                 fprintf(stderr, "Package %s is not found\n", argv[2]);
                 return -1;
             }
-
-            uint32_t log_type;
-            uint32_t default_log_type = LOG_METHOD_ENTER
-                                        | LOG_METHOD_EXIT
-                                        | LOG_METHOD_UNWIND
-                                        | LOG_FIELD_READ
-                                        | LOG_FIELD_WRITE
-                                        | LOG_EXCEPTION_CAUGHT
-                                        | LOG_FIELD_TYPE3 // App-specific fields
-                                        | LOG_METHOD_TYPE1 // Non-basic API methods
-                                        | LOG_METHOD_TYPE3; // App-defined methods
-            if (argc == 3) {
-                /* Default log type */
-                log_type = default_log_type;
-            } else {
-                log_type = parseflag_16(argv[3]);
-                if (log_type & ~LOG_ALL_FLAGS) {
-                    fprintf(stderr, "Logging flag should belong in %08X, default value is %08X\n",
-                        LOG_ALL_FLAGS, default_log_type);
-                    return -1;
-                }
-            }
-
-            Server server(uid, argv[2], log_type);
-            return server.run();
         }
+
+        // parse log type
+        uint32_t log_type;
+        uint32_t default_log_type = LOG_METHOD_ENTER
+                                    | LOG_METHOD_EXIT
+                                    | LOG_METHOD_UNWIND
+                                    | LOG_FIELD_READ
+                                    | LOG_FIELD_WRITE
+                                    | LOG_EXCEPTION_CAUGHT
+                                    | LOG_FIELD_TYPE3 // App-specific fields
+                                    | LOG_METHOD_TYPE1 // Non-basic API methods
+                                    | LOG_METHOD_TYPE3; // App-defined methods
+        if (argc == 3) {
+            /* Default log type */
+            log_type = default_log_type;
+        } else {
+            log_type = parseflag_16(argv[3]);
+            if (log_type & ~LOG_ALL_FLAGS) {
+                fprintf(stderr, "Logging flag should belong in %08X, default value is %08X\n",
+                    LOG_ALL_FLAGS, default_log_type);
+                return -1;
+            }
+        }
+
+        Server server(uid, argv[2], log_type);
+        return server.run();
     } else if (strcmp(argv[1], "client") == 0) {
         Client client;
         return client.run();

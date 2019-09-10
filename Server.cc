@@ -108,7 +108,7 @@ int Connection::send_available_prefix() {
 }
 
 Server::Server(uid_t uid_, char *package_name, uint32_t log_type_)
-        : uid(uid_), log_type(log_type_), available_index(0) {
+        : uid(uid_), log_type(log_type_), available_index(0), _target_ape(false) {
     int yes;
     if ((socket_fd = socket(AF_UNIX, SOCK_STREAM, 0)) == -1)  {
         fprintf(stderr, "socket\n");
@@ -121,11 +121,15 @@ Server::Server(uid_t uid_, char *package_name, uint32_t log_type_)
         socket_fd = -1;
     }
 
-    if (is_test_server()) {
+    if (package_name[0] == 0) {
+        this->package_name[0] = 0;
         printf("Test server is constructed\n");
+    } else if (strcmp(package_name, APE_PACKAGE) == 0) {
+        _target_ape = true;
+        printf("Server for ape is constructed\n");
     } else {
-        printf("Server with uid %u package name %s is constructed on Socket %s\n", uid_, package_name, SOCKET_NAME);
         strcpy(this->package_name, package_name);
+        printf("Server with uid %u package name %s is constructed on Socket %s\n", uid_, package_name, SOCKET_NAME);
     }
 }
 
@@ -146,7 +150,11 @@ int Server::get_available_prefix(char *prefix_buf) {
         return length;
     }
     char tmpbuf[256];
-    sprintf(tmpbuf, "/data/data/%s/", package_name);
+    if (_target_ape) {
+        sprintf(tmpbuf, "/sdcard/");
+    } else {
+        sprintf(tmpbuf, "/data/data/%s/", package_name);
+    }
 
     DIR *dir = opendir(tmpbuf);
     dirent *entry;
@@ -171,7 +179,12 @@ int Server::get_available_prefix(char *prefix_buf) {
     closedir(dir);
 
     // found and send to socket
-    int length = sprintf(prefix_buf, "/data/data/%s/mt_%d_", package_name, available_index);
+    int length;
+    if (_target_ape) {
+        length = sprintf(prefix_buf, "/sdcard/mt_%d_", available_index);
+    } else {
+        length = sprintf(prefix_buf, "/data/data/%s/mt_%d_", package_name, available_index);
+    }
     available_index++;
     return length;
 }
