@@ -30,6 +30,12 @@
 #define LOG_METHOD_TYPE3      0x80000000
 #define LOG_ALL_FLAGS         0xFF0101FF
 
+struct s_log_type {
+    uint32_t value;
+    const char *desc;
+};
+
+extern const struct s_log_type log_types[];
 #define APE_PACKAGE "ape"
 
 enum connectionStatus {
@@ -39,7 +45,6 @@ enum connectionStatus {
 };
 
 class Server;
-
 
 class Connection {
 public:

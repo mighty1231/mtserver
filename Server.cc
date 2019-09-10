@@ -8,6 +8,27 @@
 
 const char *Server::SOCKET_NAME = "/dev/mt/server";
 
+const struct s_log_type log_types[] = {
+    {LOG_METHOD_ENTER,        "log method enter"},
+    {LOG_METHOD_EXIT,         "log method exit"},
+    {LOG_METHOD_UNWIND,       "log method unwind"},
+    {LOG_DEX_PC_MOVED,        "log dex pc moved (Unused)"},
+    {LOG_FIELD_READ,          "log field read"},
+    {LOG_FIELD_WRITE,         "log field write"},
+    {LOG_EXCEPTION_CAUGHT,    "log exception caught"},
+    {LOG_COVERAGE,            "log coverage"},
+    {LOG_MESSAGE,             "log message"},
+    {CONNECT_APE,             "connect ape"},
+    {LOG_FIELD_TYPE0,         "log field type 0 (All fields except below types)"},
+    {LOG_FIELD_TYPE1,         "log field type 1 (Unused)"},
+    {LOG_FIELD_TYPE2,         "log field type 2 (Unused)"},
+    {LOG_FIELD_TYPE3,         "log field type 3 (Fields defined on app)"},
+    {LOG_METHOD_TYPE0,        "log method type 0 (Basic API methods)"},
+    {LOG_METHOD_TYPE1,        "log method type 1 (Non-basic API methods)"},
+    {LOG_METHOD_TYPE2,        "log method type 2 (Unused)"},
+    {LOG_METHOD_TYPE3,        "log method type 3 (Methods defined on app)"},
+    {0, 0}
+};
 
 Connection::Connection(int socket_fd_, Server *server_)
     :socket_fd(socket_fd_), pid(-1), server(server_),

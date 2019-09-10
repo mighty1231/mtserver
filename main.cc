@@ -119,6 +119,14 @@ int main(int argc, char** argv) {
         return client.run();
     } else if (strcmp(argv[1], "test") == 0) {
         test_parseflag_16();
+    } else if (strcmp(argv[1], "list") == 0) {
+        printf("List log types\n");
+        printf(" FLAG      DESCRIPTION\n");
+        int i = 0;
+        while (log_types[i].value != 0) {
+            printf(" %08X  %s\n", log_types[i].value, log_types[i].desc);
+            i++;
+        }
     }
     return -1;
 }
