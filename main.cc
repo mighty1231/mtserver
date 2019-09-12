@@ -41,11 +41,9 @@ void test_parseflag_16() {
     TEST(parseflag_16("faf") == 4015);
     TEST(parseflag_16("AAa") == 2730);
 
-    timespec ts;
-    clock_gettime(CLOCK_REALTIME, &ts);
-    printf("sec %ld nsec %ld\n", ts.tv_sec, ts.tv_nsec);
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    printf("sec %ld nsec %ld\n", ts.tv_sec, ts.tv_nsec);
+    timeval tv;
+    gettimeofday(&tv, NULL);
+    printf("sec %ld usec %ld\n", tv.tv_sec, tv.tv_usec);
 }
 
 uid_t getuid(const char *package_name) {
