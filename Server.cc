@@ -19,6 +19,7 @@ const struct s_log_type log_types[] = {
     {LOG_COVERAGE,            "log coverage"},
     {LOG_MESSAGE,             "log message"},
     {CONNECT_APE,             "connect ape"},
+    {LOG_ONE_SEC_PING,        "log one second pinging"},
     {LOG_FIELD_TYPE0,         "log field type 0 (All fields except below types)"},
     {LOG_FIELD_TYPE1,         "log field type 1 (Unused)"},
     {LOG_FIELD_TYPE2,         "log field type 2 (Unused)"},
@@ -27,6 +28,7 @@ const struct s_log_type log_types[] = {
     {LOG_METHOD_TYPE1,        "log method type 1 (Non-basic API methods)"},
     {LOG_METHOD_TYPE2,        "log method type 2 (Unused)"},
     {LOG_METHOD_TYPE3,        "log method type 3 (Methods defined on app)"},
+    {LOG_FLAG_DEFAULT,        "default flag"},
     {0, 0}
 };
 
