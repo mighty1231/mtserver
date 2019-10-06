@@ -3,10 +3,12 @@
 
 #include <unistd.h>
 #include <dirent.h>
+#include <sys/stat.h>
 
 #include "Server.h"
 
-const char *Server::SOCKET_NAME = "/dev/mt/server";
+const char Server::SOCKET_NAME[] = "/dev/mt/server";
+const char Server::MTDATA_DIRNAME[] = "mt_data";
 
 const struct s_log_type log_types[] = {
     {LOG_METHOD_ENTER,        "log method enter"},
@@ -174,12 +176,26 @@ int Server::get_available_prefix(char *prefix_buf) {
     }
     char tmpbuf[256];
     if (_target_ape) {
-        sprintf(tmpbuf, "/sdcard/");
+        sprintf(tmpbuf, "/sdcard/%s/", MTDATA_DIRNAME);
     } else {
-        sprintf(tmpbuf, "/data/data/%s/", package_name);
+        sprintf(tmpbuf, "/data/data/%s/%s/", package_name, MTDATA_DIRNAME);
     }
 
     DIR *dir = opendir(tmpbuf);
+    if (dir == NULL) {
+        if (errno == ENOENT) {
+            printf("opendir ENOENT!\n");
+            if (mkdir(tmpbuf, S_IRWXU | S_IRWXG | S_IRWXO) != 0) {
+                fprintf(stderr, "mkdir: errno %d %s\n", errno, strerror(errno));
+                exit(1);
+            }
+            printf("mkdir success!\n");
+            dir = opendir(tmpbuf);
+        } else {
+            fprintf(stderr, "opendir: errno %d %s\n", errno, strerror(errno));
+            exit(1);
+        }
+    }
     dirent *entry;
     int32_t flen;
 
@@ -204,9 +220,9 @@ int Server::get_available_prefix(char *prefix_buf) {
     // found and send to socket
     int length;
     if (_target_ape) {
-        length = sprintf(prefix_buf, "/sdcard/mt_%d_", available_index);
+        length = sprintf(prefix_buf, "/sdcard/%s/mt_%d_", MTDATA_DIRNAME, available_index);
     } else {
-        length = sprintf(prefix_buf, "/data/data/%s/mt_%d_", package_name, available_index);
+        length = sprintf(prefix_buf, "/data/data/%s/%s/mt_%d_", package_name, MTDATA_DIRNAME, available_index);
     }
     available_index++;
     return length;

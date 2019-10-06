@@ -82,7 +82,8 @@ public:
     bool is_test_server() {return package_name[0] == 0;}
     int get_log_type() {return log_type;}
 
-    static const char *SOCKET_NAME;
+    static const char SOCKET_NAME[];
+    static const char MTDATA_DIRNAME[];
 
 private:
     uid_t uid;
