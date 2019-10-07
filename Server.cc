@@ -184,12 +184,10 @@ int Server::get_available_prefix(char *prefix_buf) {
     DIR *dir = opendir(tmpbuf);
     if (dir == NULL) {
         if (errno == ENOENT) {
-            printf("opendir ENOENT!\n");
             if (mkdir(tmpbuf, S_IRWXU | S_IRWXG | S_IRWXO) != 0) {
                 fprintf(stderr, "mkdir: errno %d %s\n", errno, strerror(errno));
                 exit(1);
             }
-            printf("mkdir success!\n");
             dir = opendir(tmpbuf);
         } else {
             fprintf(stderr, "opendir: errno %d %s\n", errno, strerror(errno));
