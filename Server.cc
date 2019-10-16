@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <dirent.h>
 #include <sys/stat.h>
+#include <fcntl.h>
 
 #include "Server.h"
 
@@ -52,6 +53,30 @@ int Connection::handle() {
         case sStart:
             written = read(socket_fd, &pid, 4);
             if (written == 4) {
+                if (server->target_ape()) {
+                    char buffer[256];
+                    sprintf(buffer, "/proc/%d/cmdline", pid);
+                    int fd = open(buffer, O_RDONLY);
+                    if (fd == -1)
+                        return 0;
+                    int written = read(fd, buffer, 256);
+                    int idx = 0;
+                    int monkey_found = 0;
+                    int ape_found = 0;
+                    while (idx < written) {
+                        if (strcmp(&buffer[idx], "com.android.commands.monkey.Monkey") == 0)
+                            monkey_found = 1;
+                        else if (strcmp(&buffer[idx], "--ape") == 0)
+                            ape_found = 1;
+                        while (++idx < written && buffer[idx] != 0) {}
+                        ++idx;
+                    }
+                    if (!ape_found || !monkey_found) {
+                        int32_t wrong_log_type = 0xFFFFFFFF;
+                        write(socket_fd, &wrong_log_type, 4);
+                        return 0;
+                    }
+                }
                 status = sPidRead;
                 return 1;
             }
