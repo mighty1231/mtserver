@@ -216,7 +216,7 @@ void Server::kill_process() {
                 continue;
             }
 
-            uint32_t cur_uid = -1;
+            uint32_t cur_uid = 65535;
             while ((read = getline(&line, &len, fp)) != -1) {
                 // Uid: 10005   10005   10005   10005
                 if (strncmp(line, "Uid:\t", 5) == 0) {
@@ -228,7 +228,7 @@ void Server::kill_process() {
             if (uid == cur_uid)
                 pids.push_back(atoi(proc_entry->d_name));
 
-            if (cur_uid == -1) {
+            if (cur_uid == 65535) {
                 printf("Server failed to fetch uid information of pid=%s\n", proc_entry->d_name);
             }
 
