@@ -5,6 +5,7 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <vector>
 
 #include "Server.h"
 
@@ -171,6 +172,8 @@ Server::Server(uid_t uid_, char *package_name, uint32_t log_type_)
         socket_fd = -1;
     }
 
+    kill_process();
+
     if (package_name[0] == 0) {
         this->package_name[0] = 0;
         printf("Test server is constructed\n");
@@ -180,6 +183,63 @@ Server::Server(uid_t uid_, char *package_name, uint32_t log_type_)
     } else {
         strcpy(this->package_name, package_name);
         printf("Server with uid %u package name %s is constructed on Socket %s\n", uid_, package_name, SOCKET_NAME);
+    }
+}
+
+static bool is_num(char *buf) {
+    char *c = buf;
+    while ( *c != 0 ) {
+        if ('0' <= *c && *c <= '9') {
+            ++c;
+            continue;
+        }
+        return false;
+    }
+    return true;
+}
+
+void Server::kill_process() {
+    if (uid < 10000) // do not terminate system app
+        return;
+    std::vector<int> pids;
+    char tmpbuf[256] = "/proc/";
+    DIR *dir = opendir(tmpbuf);
+    dirent *proc_entry;
+    while ((proc_entry = readdir(dir)) != NULL) {
+        if (is_num(proc_entry->d_name)) {
+            char *line = NULL;
+            size_t len = 0;
+            ssize_t read;
+            sprintf(tmpbuf, "/proc/%s/status", proc_entry->d_name);
+            FILE *fp = fopen(tmpbuf, "r");
+            if (fp == NULL) {
+                continue;
+            }
+
+            uint32_t cur_uid = -1;
+            while ((read = getline(&line, &len, fp)) != -1) {
+                // Uid: 10005   10005   10005   10005
+                if (strncmp(line, "Uid:\t", 5) == 0) {
+                    cur_uid = atoi(line + 5);
+                    break;
+                }
+            }
+
+            if (uid == cur_uid)
+                pids.push_back(atoi(proc_entry->d_name));
+
+            if (cur_uid == -1) {
+                printf("Server failed to fetch uid information of pid=%s\n", proc_entry->d_name);
+            }
+
+            fclose(fp);
+            free(line);
+        }
+    }
+
+    for (std::vector<int>::iterator it = pids.begin(); it != pids.end(); it++) {
+        printf("Killing process, uid=%d pid=%d...\n", uid, *it);
+        kill(*it, SIGTERM);
     }
 }
 

@@ -12,6 +12,8 @@
         if (!(t)) {                           \
             printf("TEST " #t " failed\n");   \
             exit(-1);                         \
+        } else {                              \
+            printf("TEST " #t " success\n");  \
         }                                     \
     }
 
@@ -56,6 +58,30 @@ uid_t getuid(const char *package_name) {
     } else {
         return 0;
     }
+}
+
+static bool is_num(const char *buf) {
+    const char *c = buf;
+    while ( *c != 0 ) {
+        if ('0' <= *c && *c <= '9') {
+            ++c;
+            continue;
+        }
+        return false;
+    }
+    return true;
+}
+
+void test_is_num() {
+    TEST(is_num("34") == true);
+    TEST(is_num("910") == true);
+    TEST(is_num("09") == true);
+    TEST(is_num("a") == false);
+    TEST(is_num("!") == false);
+    TEST(is_num("1!") == false);
+    TEST(is_num("!1") == false);
+
+    TEST(strlen("Uid:\t") == 5);
 }
 
 int main(int argc, char** argv) {
@@ -108,6 +134,7 @@ int main(int argc, char** argv) {
         return client.run();
     } else if (strcmp(argv[1], "test") == 0) {
         test_parseflag_16();
+        test_is_num();
     } else if (strcmp(argv[1], "list") == 0) {
         printf("List log types\n");
         printf(" FLAG      DESCRIPTION\n");

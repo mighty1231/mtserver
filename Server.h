@@ -87,6 +87,8 @@ public:
     static const char MTDATA_DIRNAME[];
 
 private:
+    void kill_process();
+
     uid_t uid;
     char package_name[64];
     const uint32_t log_type;
