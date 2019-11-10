@@ -58,14 +58,14 @@ public:
     int get_socket_fd(){return socket_fd;}
 
 private:
-    int send_available_prefix();
+    int send_available_directory();
     int socket_fd;
     pid_t pid;
     Server *server;
 
     connectionStatus status;
 
-    char prefix_buf[256];
+    char directory_buf[256];
     char fname_buf[256];
     int fname_buf_offset;
 };
@@ -78,7 +78,7 @@ public:
     virtual ~Server();
 
     int run();
-    int get_available_prefix(char *prefix_buf);
+    int get_available_directory(char *directory_buf);
     bool is_test_server() {return package_name[0] == 0;}
     int get_log_type() {return log_type;}
     bool target_ape() {return _target_ape;}

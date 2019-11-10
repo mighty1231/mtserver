@@ -89,7 +89,7 @@ int Connection::handle() {
                 if (shakeval == 0x7415963) {
                     printf("[Socket %d] Connection with pid %d from Start()\n", socket_fd, pid);
                     int log_type = server->get_log_type();
-                    if (write(socket_fd, &log_type, 4) == 4 && send_available_prefix()) {
+                    if (write(socket_fd, &log_type, 4) == 4 && send_available_directory()) {
                         status = sRunning;
                         return 1;
                     }
@@ -112,7 +112,7 @@ int Connection::handle() {
                     fname_buf[fname_buf_offset] = 0;
                     fprintf(stderr, "[Socket %d] Incomplete file released: release %s\n", socket_fd, fname_buf);
                 }
-                printf("[Socket %d] Connection closed, prefix=%s\n", socket_fd, prefix_buf);
+                printf("[Socket %d] Connection closed, directory=%s\n", socket_fd, directory_buf);
                 return 0;
             } else {
                 int left_offset, right_offset;
@@ -143,18 +143,18 @@ int Connection::handle() {
     return 1;
 }
 
-int Connection::send_available_prefix() {
-    int prefix_length = server->get_available_prefix(prefix_buf);
+int Connection::send_available_directory() {
+    int directory_length = server->get_available_directory(directory_buf);
 
-    if (write(socket_fd, &prefix_length, 4) != 4) {
-        fprintf(stderr, "[Socket %d] Write prefix errno %d\n", socket_fd, errno);
+    if (write(socket_fd, &directory_length, 4) != 4) {
+        fprintf(stderr, "[Socket %d] Write directory errno %d\n", socket_fd, errno);
         return 0;
     }
-    if (write(socket_fd, prefix_buf, prefix_length + 1) != prefix_length + 1) {
-        fprintf(stderr, "[Socket %d] Write prefix errno %d\n", socket_fd, errno);
+    if (write(socket_fd, directory_buf, directory_length + 1) != directory_length + 1) {
+        fprintf(stderr, "[Socket %d] Write directory errno %d\n", socket_fd, errno);
         return 0;
     }
-    printf("[Socket %d] Selected prefix: %s\n", socket_fd, prefix_buf);
+    printf("[Socket %d] Selected directory: %s\n", socket_fd, directory_buf);
     return 1;
 }
 
@@ -253,15 +253,15 @@ Server::~Server() {
     close(socket_fd);
 }
 
-int Server::get_available_prefix(char *prefix_buf) {
+int Server::get_available_directory(char *directory_buf) {
     if (is_test_server()) {
-        int length = sprintf(prefix_buf, "Hello_my_friend_%d", available_index);
+        int length = sprintf(directory_buf, "Hello_my_friend_%d", available_index);
         available_index++;
         return length;
     }
     char tmpbuf[256];
     if (_target_ape) {
-        sprintf(tmpbuf, "/sdcard/%s/", MTDATA_DIRNAME);
+        strcpy(tmpbuf, "/data/ape/ape_mt_data/");
     } else {
         sprintf(tmpbuf, "/data/data/%s/%s/", package_name, MTDATA_DIRNAME);
     }
@@ -283,10 +283,10 @@ int Server::get_available_prefix(char *prefix_buf) {
     int32_t flen;
 
     while (true) { // loop for available_index
-        sprintf(tmpbuf, "mt_%d_", available_index);
+        sprintf(tmpbuf, "%d", available_index);
         flen = strlen(tmpbuf);
         while ((entry = readdir(dir)) != NULL) {
-            if (memcmp(entry->d_name, tmpbuf, flen) == 0) {
+            if (strcmp(entry->d_name, tmpbuf) == 0) {
                 // If there is some file with given tmpbuf,
                 //    tmpbuf should be changed.
                 goto continue_point;
@@ -300,12 +300,24 @@ int Server::get_available_prefix(char *prefix_buf) {
     }
     closedir(dir);
 
-    // found and send to socket
+    // found, makedir and send to socket
     int length;
     if (_target_ape) {
-        length = sprintf(prefix_buf, "/sdcard/%s/mt_%d_", MTDATA_DIRNAME, available_index);
+        length = sprintf(directory_buf, "/data/ape/ape_mt_data/%d", available_index);
+        if (mkdir(directory_buf, S_IRWXU | S_IRWXG | S_IRWXO) != 0) {
+            fprintf(stderr, "mkdir %s errno %d %s\n", directory_buf, errno, strerror(errno));
+            exit(1);
+        }
+        directory_buf[length++] = '/';
+        directory_buf[length] = 0;
     } else {
-        length = sprintf(prefix_buf, "/data/data/%s/%s/mt_%d_", package_name, MTDATA_DIRNAME, available_index);
+        length = sprintf(directory_buf, "/data/data/%s/%s/%d", package_name, MTDATA_DIRNAME, available_index);
+        if (mkdir(directory_buf, S_IRWXU | S_IRWXG | S_IRWXO) != 0) {
+            fprintf(stderr, "mkdir %s errno %d %s\n", directory_buf, errno, strerror(errno));
+            exit(1);
+        }
+        directory_buf[length++] = '/';
+        directory_buf[length] = 0;
     }
     available_index++;
     return length;
